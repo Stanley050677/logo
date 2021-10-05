@@ -1,144 +1,632 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const {
-  calculateSizingOptions,
-  createLogoViewer,
-  loadModelFromJson,
-  createModelRenderer,
-  createNode,
-  setAttribute,
-} = require('../util');
-const foxJson = require('../fox.json');
+const copy = require('copy-to-clipboard');
+const createViewer = require('..');
+const { svgElementToSvgImageContent } = require('../util');
+const meshJson = require('../flask-fox.json');
 
-createDistortedLogo({
+document.addEventListener('keypress', function (event) {
+  if (event.keyCode === 99) {
+    // the c key
+    const svg = document.querySelector('svg');
+    const content = svgElementToSvgImageContent(svg);
+    copy(content);
+  }
+});
+
+createViewer({
   width: 0.4,
   height: 0.4,
   followMouse: true,
   followMotion: true,
-  lazyRender: false,
+  meshJson,
 });
 
-function createDistortedLogo(options) {
-  const cameraDistance = options.cameraDistance || 400;
-  const { height, width } = calculateSizingOptions(options);
-
-  const container = createNode('svg');
-  setAttribute(container, 'width', `${width}px`);
-  setAttribute(container, 'height', `${height}px`);
-  document.body.appendChild(container);
-
-  const modelObj = loadModelFromJson(foxJson);
-  const { positions } = modelObj;
-  //  store a copy of positions
-  const origPositions = positions.slice();
-
-  const distortionMethods = {
-    Glitch: distortGlitch,
-    Fold: distortFold,
-    Grow: distortGrow,
-  };
-  let applyDistortion = Object.values(distortionMethods)[0];
-
-  Object.entries(distortionMethods).forEach(([description, distortionFn]) => {
-    const button = document.createElement('button');
-    button.innerText = description;
-    button.addEventListener('click', () => {
-      applyDistortion = distortionFn;
-    });
-    document.body.appendChild(button);
-  });
-
-  const renderFox = createModelRenderer(container, cameraDistance, modelObj);
-  const renderScene = (lookCurrent, slowDrift) => {
-    const rect = container.getBoundingClientRect();
-    applyDistortion(positions, origPositions);
-    renderFox(rect, lookCurrent, slowDrift);
-  };
-
-  return createLogoViewer(
-    container,
-    renderScene,
-    Object.assign({ cameraDistance }, options),
-  );
-}
-
-// glitch up and down
-function distortGlitch(positions, origPositions) {
-  const pointCount = positions.length / 3;
-  for (let polygonIndex = 0; polygonIndex < pointCount; polygonIndex++) {
-    const x = polygonIndex * 3 + 0;
-    const y = polygonIndex * 3 + 1;
-    const z = polygonIndex * 3 + 2;
-    // strong along x
-    positions[x] = origPositions[x] + 20 * getSinIntensity() * Math.random();
-    positions[y] = origPositions[y] + 20 * getSinIntensity() * Math.random();
-    positions[z] = origPositions[z] + 20 * getSinIntensity() * Math.random();
+},{"..":4,"../flask-fox.json":2,"../util":14,"copy-to-clipboard":5}],2:[function(require,module,exports){
+module.exports={
+  "positions": [
+    [111.0246, 52.6046, 46.2259],
+    [114.025, 87.6733, 58.9818],
+    [66.192, 80.898, 55.3943],
+    [72.1133, 35.4918, 30.8714],
+    [97.8045, 116.561, 73.9788],
+    [16.7623, 58.0109, 58.0782],
+    [52.6089, 30.3641, 42.5561],
+    [106.8814, 31.9455, 46.9133],
+    [113.4846, 38.6049, 49.1215],
+    [108.6633, 43.2332, 46.3154],
+    [101.2166, 15.9822, 46.3082],
+    [16.6605, -16.2883, 93.6187],
+    [40.775, -10.2288, 85.2764],
+    [23.9269, -2.5103, 86.7365],
+    [11.1691, -7.0037, 99.3776],
+    [9.5692, -34.3939, 141.672],
+    [12.596, 7.1655, 88.741],
+    [61.1809, 8.8142, 76.9968],
+    [39.7195, -28.9271, 88.9638],
+    [13.7962, -68.5757, 132.057],
+    [15.2674, -62.32, 129.688],
+    [14.8446, -52.6096, 140.113],
+    [12.8917, -49.7716, 144.741],
+    [35.6042, -71.758, 81.0639],
+    [47.4625, -68.6061, 63.3697],
+    [38.2486, -64.7302, 38.9099],
+    [-12.8917, -49.7716, 144.741],
+    [-13.7962, -68.5757, 132.057],
+    [17.8021, -71.758, 81.0639],
+    [19.1243, -69.0168, 49.4201],
+    [38.2486, -66.2756, 17.7762],
+    [12.8928, -36.7035, 141.672],
+    [109.284, -93.5899, 27.8243],
+    [122.118, -36.8894, 35.025],
+    [67.7668, -30.197, 78.4178],
+    [33.1807, 101.852, 25.3186],
+    [9.4063, -35.5898, 150.722],
+    [-9.5692, -34.3939, 141.672],
+    [-9.4063, -35.5898, 150.722],
+    [11.4565, -37.8994, 150.722],
+    [-12.596, 7.1655, 88.741],
+    [-11.1691, -7.0037, 99.3776],
+    [70.2365, 62.8362, -3.9475],
+    [47.2634, 54.294, -27.4148],
+    [28.7302, 91.7311, -24.9726],
+    [69.1676, 6.5862, -12.7757],
+    [28.7302, 49.1003, -48.3596],
+    [31.903, 5.692, -47.822],
+    [35.0758, -34.4329, -16.2809],
+    [115.2841, 48.6815, 48.6841],
+    [110.8428, 28.4821, 49.1762],
+    [-19.1243, -69.0168, 49.4201],
+    [-38.2486, -66.2756, 17.7762],
+    [-111.0246, 52.6046, 46.2259],
+    [-72.1133, 35.4918, 30.8714],
+    [-66.192, 80.898, 55.3943],
+    [-114.025, 87.6733, 58.9818],
+    [-97.8045, 116.561, 73.9788],
+    [-52.6089, 30.3641, 42.5561],
+    [-16.7623, 58.0109, 58.0782],
+    [-106.8814, 31.9455, 46.9133],
+    [-108.6633, 43.2332, 46.3154],
+    [-113.4846, 38.6049, 49.1215],
+    [-101.2166, 15.9822, 46.3082],
+    [-16.6605, -16.2883, 93.6187],
+    [-23.9269, -2.5103, 86.7365],
+    [-40.775, -10.2288, 85.2764],
+    [-61.1809, 8.8142, 76.9968],
+    [-39.7195, -28.9271, 88.9638],
+    [-14.8446, -52.6096, 140.113],
+    [-15.2674, -62.32, 129.688],
+    [-47.4625, -68.6061, 63.3697],
+    [-35.6042, -71.758, 81.0639],
+    [-38.2486, -64.7302, 38.9099],
+    [-17.8021, -71.758, 81.0639],
+    [-12.8928, -36.7035, 141.672],
+    [-67.7668, -30.197, 78.4178],
+    [-122.118, -36.8894, 35.025],
+    [-109.284, -93.5899, 27.8243],
+    [-33.1807, 101.852, 25.3186],
+    [-11.4565, -37.8994, 150.722],
+    [-70.2365, 62.8362, -3.9475],
+    [-28.7302, 91.7311, -24.9726],
+    [-47.2634, 54.294, -27.4148],
+    [-69.1676, 6.5862, -12.7757],
+    [-28.7302, 49.1003, -48.3596],
+    [-31.903, 5.692, -47.822],
+    [-35.0758, -34.4329, -16.2809],
+    [-115.2841, 48.6815, 48.6841],
+    [-110.8428, 28.4821, 49.1762]
+  ],
+  "chunks": [
+    {
+      "color": [123, 129, 255],
+      "faces": [
+        [17, 33, 10],
+        [17, 18, 34],
+        [34, 33, 17],
+        [10, 6, 17],
+        [11, 15, 31],
+        [31, 18, 11],
+        [18, 12, 11],
+        [14, 16, 40],
+        [40, 41, 14],
+        [59, 5, 35],
+        [35, 79, 59],
+        [67, 63, 77],
+        [67, 77, 76],
+        [76, 68, 67],
+        [63, 67, 58],
+        [64, 68, 75],
+        [75, 37, 64],
+        [68, 64, 66],
+        [14, 41, 37],
+        [37, 15, 14],
+        [5, 59, 40],
+        [40, 16, 5]
+      ],
+      "mask": "mask1",
+      "name": "middle forehead, cheecks, below eyes, top of right ear",
+      "gradient": "paint1_linear"
+    },
+    {
+      "color": [123, 129, 255],
+      "faces": [
+        [31, 24, 18],
+        [6, 5, 16],
+        [16, 17, 6],
+        [24, 32, 33],
+        [33, 34, 24],
+        [5, 4, 35],
+        [75, 68, 71],
+        [58, 67, 40],
+        [40, 59, 58],
+        [71, 76, 77],
+        [77, 78, 71]
+      ],
+      "mask": "mask1",
+      "name": "cheek fluff, forehead",
+      "gradient": "paint10_linear"
+    },
+    {
+      "color": [118, 61, 22],
+      "faces": [
+        [0, 1, 2],
+        [2, 3, 0],
+        [4, 5, 2],
+        [6, 3, 2],
+        [2, 5, 6],
+        [7, 8, 9],
+        [10, 3, 6],
+        [10, 50, 7],
+        [7, 3, 10],
+        [7, 9, 3],
+        [49, 0, 9],
+        [3, 9, 0],
+        [53, 54, 55],
+        [55, 56, 53],
+        [57, 56, 55],
+        [58, 59, 55],
+        [55, 54, 58],
+        [60, 61, 62],
+        [63, 58, 54],
+        [63, 60, 89],
+        [60, 63, 54],
+        [60, 54, 61],
+        [88, 61, 53],
+        [54, 53, 61],
+        [2, 1, 4],
+        [55, 59, 57]
+      ],
+      "mask": "mask1",
+      "name": "ears",
+      "gradient": "paint4_linear"
+    },
+    {
+      "color": [22, 22, 22],
+      "faces": [
+        [36, 15, 37],
+        [37, 38, 36],
+        [31, 39, 22],
+        [22, 21, 31],
+        [31, 15, 36],
+        [36, 39, 31],
+        [75, 69, 26],
+        [26, 80, 75],
+        [75, 80, 38],
+        [38, 37, 75],
+        [38, 80, 39],
+        [39, 36, 38],
+        [39, 80, 26],
+        [26, 22, 39]
+      ],
+      "name": "nose"
+    },
+    {
+      "color": [255, 159, 90],
+      "faces": [
+        [21, 20, 24],
+        [24, 31, 21],
+        [69, 71, 70],
+        [71, 69, 75]
+      ],
+      "name": "upper chin"
+    },
+    {
+      "color": [223, 117, 84],
+      "faces": [
+        [19, 20, 21],
+        [21, 22, 19],
+        [20, 19, 23],
+        [23, 24, 20],
+        [23, 25, 24],
+        [19, 22, 26],
+        [26, 27, 19],
+        [23, 28, 29],
+        [23, 29, 30],
+        [25, 23, 30],
+        [29, 51, 52],
+        [52, 30, 29],
+        [27, 26, 69],
+        [69, 70, 27],
+        [70, 71, 72],
+        [72, 27, 70],
+        [72, 71, 73],
+        [51, 74, 72],
+        [52, 51, 72],
+        [73, 52, 72],
+        [19, 27, 74],
+        [74, 28, 19],
+        [51, 29, 28],
+        [28, 74, 51],
+        [74, 27, 72],
+        [28, 23, 19]
+      ],
+      "name": "chin"
+    },
+    {
+      "color": [82, 88, 230],
+      "faces": [
+        [24, 34, 18],
+        [16, 13, 12],
+        [12, 17, 16],
+        [13, 16, 11],
+        [71, 68, 76],
+        [40, 67, 66],
+        [66, 65, 40],
+        [65, 64, 40]
+      ],
+      "mask": "mask1",
+      "name": "cheeks and surrounding eyes"
+    },
+    {
+      "color": [22, 22, 22],
+      "faces": [
+        [11, 12, 13],
+        [64, 65, 66]
+      ],
+      "name": "eyes"
+    },
+    {
+      "color": [123, 129, 255],
+      "faces": [
+        [14, 15, 11],
+        [11, 16, 14],
+        [17, 12, 18],
+        [41, 64, 37],
+        [67, 68, 66]
+      ],
+      "mask": "mask1",
+      "name": "snout folds"
+    },
+    {
+      "color": [97, 103, 245],
+      "faces": [
+        [35, 4, 42],
+        [4, 1, 42],
+        [42, 43, 44],
+        [44, 35, 42],
+        [45, 43, 42],
+        [42, 10, 45],
+        [30, 32, 24],
+        [24, 25, 30],
+        [30, 33, 32],
+        [33, 30, 10],
+        [44, 43, 46],
+        [43, 45, 47],
+        [47, 46, 43],
+        [48, 47, 45],
+        [45, 30, 48],
+        [30, 45, 10],
+        [49, 42, 0],
+        [8, 7, 42],
+        [50, 42, 7],
+        [50, 10, 42],
+        [1, 0, 42],
+        [42, 9, 8],
+        [42, 49, 9],
+        [64, 41, 40],
+        [57, 59, 79],
+        [79, 81, 57],
+        [57, 81, 56],
+        [82, 79, 35],
+        [35, 44, 82],
+        [81, 79, 82],
+        [82, 83, 81],
+        [84, 63, 81],
+        [81, 83, 84],
+        [44, 46, 85],
+        [85, 82, 44],
+        [52, 73, 71],
+        [71, 78, 52],
+        [52, 78, 77],
+        [77, 63, 52],
+        [82, 85, 83],
+        [83, 85, 86],
+        [86, 84, 83],
+        [87, 52, 84],
+        [84, 86, 87],
+        [52, 63, 84],
+        [88, 53, 81],
+        [62, 81, 60],
+        [89, 60, 81],
+        [89, 81, 63],
+        [56, 81, 53],
+        [81, 62, 61],
+        [81, 61, 88],
+        [48, 87, 86],
+        [86, 47, 48],
+        [47, 86, 85],
+        [85, 46, 47],
+        [48, 30, 52],
+        [52, 87, 48]
+      ],
+      "mask": "mask1",
+      "name": "back, top of right ear"
+    }
+  ],
+  "gradients": {
+    "paint0_linear": {
+      "x1": "17.4996",
+      "y1": "4.16699",
+      "x2": "17.4996",
+      "y2": "26.4153",
+      "gradientUnits": "userSpaceOnUse",
+      "type": "linear",
+      "stops": [
+        {
+          "stop-color": "#7E83FF"
+        },
+        {
+          "offset": "1",
+          "stop-color": "#A1A5FF"
+        }
+      ]
+    },
+    "paint1_linear": {
+      "type": "linear",
+      "x1": "29.3974",
+      "y1": "14.1221",
+      "x2": "29.3974",
+      "y2": "23.7337",
+      "gradientUnits": "userSpaceOnUse",
+      "stops": [
+        {
+          "stop-color": "#555BE9"
+        },
+        {
+          "offset": "1",
+          "stop-color": "#989CFF"
+        }
+      ]
+    },
+    "paint2_linear": {
+      "x1": "5.6088",
+      "y1": "14.1221",
+      "x2": "5.6088",
+      "y2": "23.7337",
+      "gradientUnits": "userSpaceOnUse",
+      "type": "linear",
+      "stops": [
+        {
+          "stop-color": "#555BE9"
+        },
+        {
+          "offset": "1",
+          "stop-color": "#989CFF"
+        }
+      ]
+    },
+    "paint3_linear": {
+      "x1": "24.3725",
+      "y1": "13.4755",
+      "x2": "36.9499",
+      "y2": "3.6613",
+      "gradientUnits": "userSpaceOnUse",
+      "type": "linear",
+      "stops": [
+        {
+          "stop-color": "#070D9B"
+        },
+        {
+          "offset": "1",
+          "stop-color": "#4248D6"
+        }
+      ]
+    },
+    "paint4_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "10.6275",
+      "y1": "13.4755",
+      "x2": "-1.94986",
+      "y2": "3.6613",
+      "stops": [
+        {
+          "stop-color": "#070D9B"
+        },
+        {
+          "stop-color": "#4248D6",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint5_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "29.7202",
+      "y1": "23.6787",
+      "x2": "29.7202",
+      "y2": "31.2827",
+      "stops": [
+        {
+          "stop-color": "#787878"
+        },
+        {
+          "stop-color": "#5E5E5E",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint6_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "5.28661",
+      "y1": "23.6787",
+      "x2": "5.28661",
+      "y2": "31.2827",
+      "stops": [
+        {
+          "stop-color": "#787878"
+        },
+        {
+          "stop-color": "#5E5E5E",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint7_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "11.5473",
+      "y1": "9.81738",
+      "x2": "11.5473",
+      "y2": "17.7514",
+      "stops": [
+        {
+          "stop-color": "#7A7A7A"
+        },
+        {
+          "stop-color": "#949494",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint8_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "23.4521",
+      "y1": "9.81738",
+      "x2": "23.4521",
+      "y2": "17.7514",
+      "stops": [
+        {
+          "stop-color": "#7A7A7A"
+        },
+        {
+          "stop-color": "#949494",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint9_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "12.6116",
+      "y1": "32.3962",
+      "x2": "12.6116",
+      "y2": "-3.33511",
+      "stops": [
+        {
+          "stop-color": "#7A7C7D"
+        },
+        {
+          "stop-color": "#CECECF",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint10_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "22.3884",
+      "y1": "32.3962",
+      "x2": "22.3884",
+      "y2": "-3.33511",
+      "stops": [
+        {
+          "stop-color": "#686EFC"
+        },
+        {
+          "stop-color": "#C7C9FF",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint11_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "26.2118",
+      "y1": "16.7209",
+      "x2": "26.2118",
+      "y2": "30.8694",
+      "stops": [
+        {
+          "stop-color": "#3E3E3E"
+        },
+        {
+          "stop-color": "#616161",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint12_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "8.78767",
+      "y1": "16.7209",
+      "x2": "8.78767",
+      "y2": "30.8694",
+      "stops": [
+        {
+          "stop-color": "#3E3E3E"
+        },
+        {
+          "stop-color": "#616161",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint13_linear": {
+      "type": "linear",
+      "gradientUnits": "userSpaceOnUse",
+      "x1": "17.4382",
+      "y1": "4.12515",
+      "x2": "17.4382",
+      "y2": "34.1012",
+      "stops": [
+        {
+          "stop-color": "#FF60DC"
+        },
+        {
+          "stop-color": "#6B71FF",
+          "offset": "1"
+        }
+      ]
+    },
+    "paint14_radial": {
+      "cx": "50%",
+      "cy": "0",
+      "r": "70%",
+      "gradientUnits": "userSpaceOnUse",
+      "type": "radial",
+      "stops": [
+        {
+          "stop-color": "rgb(255,255,255)"
+        },
+        {
+          "offset": "1",
+          "stop-color": "rbg(0,0,0)"
+        }
+      ]
+    }
+  },
+  "masks": {
+    "mask1": {
+      "modelColor": "rgb(255,96,220)",
+      "maskColor": "url('#paint14_radial')"
+    }
   }
 }
 
-// bug: grow head slowly?
-function distortGrow(positions, origPositions) {
-  const progress = getSinIntensity();
-  const pointCount = positions.length / 3;
-  const polygonProgressWidth = 1 / pointCount;
-  for (let polygonIndex = 0; polygonIndex < pointCount; polygonIndex++) {
-    // calculate the current progress for each polygon
-    const polygonProgressStart = polygonIndex * polygonProgressWidth;
-    const polygonProgressEnd = polygonProgressStart + polygonProgressWidth;
-    const polygonProgressUncapped =
-      (progress - polygonProgressStart) /
-      (polygonProgressEnd - polygonProgressStart);
-    const polygonProgress = Math.min(Math.max(polygonProgressUncapped, 0), 1);
-    // the previous polygon (self referential for the first one)
-    const prevPolygonIndex = Math.max(polygonIndex, polygonIndex - 1);
-    const prevX = origPositions[prevPolygonIndex * (3 + 0)];
-    const prevY = origPositions[prevPolygonIndex * (3 + 1)];
-    const prevZ = origPositions[prevPolygonIndex * (3 + 2)];
-    const x = polygonIndex * (3 + 0);
-    const y = polygonIndex * (3 + 1);
-    const z = polygonIndex * (3 + 2);
-    // strong along x
-    positions[x] = prevX + polygonProgress * origPositions[x];
-    positions[y] = prevY + polygonProgress * origPositions[y];
-    positions[z] = prevZ + polygonProgress * origPositions[z];
-  }
-}
-
-// bug: grow head slowly?
-function distortFold(positions, origPositions) {
-  const progress = getSinIntensity(5000);
-  const pointCount = positions.length / 3;
-  const polygonProgressWidth = 1 / pointCount;
-  // reset positions
-  Object.assign(positions, origPositions);
-  for (let polygonIndex = 0; polygonIndex < pointCount; polygonIndex++) {
-    // calculate the current progress for each polygon
-    const polygonProgressStart = polygonIndex * polygonProgressWidth;
-    const polygonProgressEnd = polygonProgressStart + polygonProgressWidth;
-    const polygonProgressUncapped =
-      (progress - polygonProgressStart) /
-      (polygonProgressEnd - polygonProgressStart);
-    const polygonProgress = Math.min(Math.max(polygonProgressUncapped, 0), 1);
-    // the previous polygon (self referential for the first one)
-    const prevPolygonIndex = Math.max(0, polygonIndex - 1);
-    const prevX = positions[prevPolygonIndex * (3 + 0)];
-    const prevY = positions[prevPolygonIndex * (3 + 1)];
-    const prevZ = positions[prevPolygonIndex * (3 + 2)];
-    const x = polygonIndex * (3 + 0);
-    const y = polygonIndex * (3 + 1);
-    const z = polygonIndex * (3 + 2);
-    // console.log(polygonIndex, polygonProgress)
-    positions[x] = prevX + polygonProgress * (origPositions[x] - prevX);
-    positions[y] = prevY + polygonProgress * (origPositions[y] - prevY);
-    positions[z] = prevZ + polygonProgress * (origPositions[z] - prevZ);
-  }
-}
-
-// sin between 0-1
-function getSinIntensity(speed = 1000) {
-  return (Math.sin(Date.now() / speed) + 1) / 2;
-}
-
-},{"../fox.json":2,"../util":10}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 module.exports={
   "positions": [
     [111.024597, 52.604599, 46.225899],
@@ -462,7 +950,149 @@ module.exports={
   ]
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+const foxJson = require('./fox.json');
+const {
+  calculateSizingOptions,
+  createLogoViewer,
+  loadModelFromJson,
+  createModelRenderer,
+  createNode,
+  setAttribute,
+  setGradientDefinitions,
+} = require('./util');
+
+module.exports = createLogo;
+
+function createLogo(options = {}) {
+  const cameraDistance = options.cameraDistance || 400;
+  const { height, width } = calculateSizingOptions(options);
+  const meshJson = options.meshJson || foxJson;
+
+  const container = createNode('svg');
+  setAttribute(container, 'width', `${width}px`);
+  setAttribute(container, 'height', `${height}px`);
+  document.body.appendChild(container);
+
+  setGradientDefinitions(container, meshJson.gradients);
+  setMaskDefinitions(container, meshJson.masks, height, width);
+
+  const modelObj = loadModelFromJson(meshJson);
+  const renderFox = createModelRenderer(container, cameraDistance, modelObj);
+  const renderScene = (lookCurrent, slowDrift) => {
+    const rect = container.getBoundingClientRect();
+    renderFox(rect, lookCurrent, slowDrift);
+  };
+
+  return createLogoViewer(
+    container,
+    renderScene,
+    Object.assign({ cameraDistance }, options),
+  );
+}
+
+function setMaskDefinitions(container, masks, height, width) {
+  for (const [maskId, maskDefinition] of Object.entries(masks)) {
+    const mask = createNode('mask');
+    setAttribute(mask, 'id', maskId);
+
+    const maskedRect = createNode('rect');
+
+    // Extend mask beyond container to ensure it completely covers the model.
+    // The model can extend beyond the container as well.
+    setAttribute(maskedRect, 'width', width * 1.5);
+    setAttribute(maskedRect, 'height', height * 1.5);
+    setAttribute(maskedRect, 'x', `-${Math.floor(width / 4)}`);
+    setAttribute(maskedRect, 'y', `-${Math.floor(height / 4)}`);
+
+    setAttribute(maskedRect, 'fill', maskDefinition.maskColor);
+    mask.appendChild(maskedRect);
+
+    container.appendChild(mask);
+  }
+}
+
+},{"./fox.json":3,"./util":14}],5:[function(require,module,exports){
+'use strict';
+
+var deselectCurrent = require('toggle-selection');
+
+var defaultMessage = 'Copy to clipboard: #{key}, Enter';
+
+function format(message) {
+  var copyKey = (/mac os x/i.test(navigator.userAgent) ? '⌘' : 'Ctrl') + '+C';
+  return message.replace(/#{\s*key\s*}/g, copyKey);
+}
+
+function copy(text, options) {
+  var debug, message, reselectPrevious, range, selection, mark, success = false;
+  if (!options) { options = {}; }
+  debug = options.debug || false;
+  try {
+    reselectPrevious = deselectCurrent();
+
+    range = document.createRange();
+    selection = document.getSelection();
+
+    mark = document.createElement('span');
+    mark.textContent = text;
+    // reset user styles for span element
+    mark.style.all = 'unset';
+    // prevents scrolling to the end of the page
+    mark.style.position = 'fixed';
+    mark.style.top = 0;
+    mark.style.clip = 'rect(0, 0, 0, 0)';
+    // used to preserve spaces and line breaks
+    mark.style.whiteSpace = 'pre';
+    // do not inherit user-select (it may be `none`)
+    mark.style.webkitUserSelect = 'text';
+    mark.style.MozUserSelect = 'text';
+    mark.style.msUserSelect = 'text';
+    mark.style.userSelect = 'text';
+
+    document.body.appendChild(mark);
+
+    range.selectNode(mark);
+    selection.addRange(range);
+
+    var successful = document.execCommand('copy');
+    if (!successful) {
+      throw new Error('copy command was unsuccessful');
+    }
+    success = true;
+  } catch (err) {
+    debug && console.error('unable to copy using execCommand: ', err);
+    debug && console.warn('trying IE specific stuff');
+    try {
+      window.clipboardData.setData('text', text);
+      success = true;
+    } catch (err) {
+      debug && console.error('unable to copy using clipboardData: ', err);
+      debug && console.error('falling back to prompt');
+      message = format('message' in options ? options.message : defaultMessage);
+      window.prompt(message, text);
+    }
+  } finally {
+    if (selection) {
+      if (typeof selection.removeRange == 'function') {
+        selection.removeRange(range);
+      } else {
+        selection.removeAllRanges();
+      }
+    }
+
+    if (mark) {
+      document.body.removeChild(mark);
+    }
+    reselectPrevious();
+  }
+
+  return success;
+}
+
+module.exports = copy;
+
+},{"toggle-selection":13}],6:[function(require,module,exports){
 module.exports = identity;
 
 /**
@@ -490,7 +1120,7 @@ function identity(out) {
     out[15] = 1;
     return out;
 };
-},{}],4:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = invert;
 
 /**
@@ -546,7 +1176,7 @@ function invert(out, a) {
 
     return out;
 };
-},{}],5:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var identity = require('./identity');
 
 module.exports = lookAt;
@@ -637,7 +1267,7 @@ function lookAt(out, eye, center, up) {
 
     return out;
 };
-},{"./identity":3}],6:[function(require,module,exports){
+},{"./identity":6}],9:[function(require,module,exports){
 module.exports = multiply;
 
 /**
@@ -680,7 +1310,7 @@ function multiply(out, a, b) {
     out[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
     return out;
 };
-},{}],7:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = perspective;
 
 /**
@@ -714,7 +1344,7 @@ function perspective(out, fovy, aspect, near, far) {
     out[15] = 0;
     return out;
 };
-},{}],8:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports = rotate;
 
 /**
@@ -779,7 +1409,7 @@ function rotate(out, a, rad, axis) {
     }
     return out;
 };
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = transformMat4;
 
 /**
@@ -800,7 +1430,48 @@ function transformMat4(out, a, m) {
     out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w
     return out
 }
-},{}],10:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+
+module.exports = function () {
+  var selection = document.getSelection();
+  if (!selection.rangeCount) {
+    return function () {};
+  }
+  var active = document.activeElement;
+
+  var ranges = [];
+  for (var i = 0; i < selection.rangeCount; i++) {
+    ranges.push(selection.getRangeAt(i));
+  }
+
+  switch (active.tagName.toUpperCase()) { // .toUpperCase handles XHTML
+    case 'INPUT':
+    case 'TEXTAREA':
+      active.blur();
+      break;
+
+    default:
+      active = null;
+      break;
+  }
+
+  selection.removeAllRanges();
+  return function () {
+    selection.type === 'Caret' &&
+    selection.removeAllRanges();
+
+    if (!selection.rangeCount) {
+      ranges.forEach(function(range) {
+        selection.addRange(range);
+      });
+    }
+
+    active &&
+    active.focus();
+  };
+};
+
+},{}],14:[function(require,module,exports){
 const perspective = require('gl-mat4/perspective');
 const multiply = require('gl-mat4/multiply');
 const lookAt = require('gl-mat4/lookAt');
@@ -1421,4 +2092,4 @@ function setGradientDefinitions(container, gradients) {
   container.appendChild(defsContainer);
 }
 
-},{"gl-mat4/invert":4,"gl-mat4/lookAt":5,"gl-mat4/multiply":6,"gl-mat4/perspective":7,"gl-mat4/rotate":8,"gl-vec3/transformMat4":9}]},{},[1]);
+},{"gl-mat4/invert":7,"gl-mat4/lookAt":8,"gl-mat4/multiply":9,"gl-mat4/perspective":10,"gl-mat4/rotate":11,"gl-vec3/transformMat4":12}]},{},[1]);

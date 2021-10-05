@@ -693,6 +693,7 @@ const {
   createModelRenderer,
   createNode,
   setAttribute,
+  setGradientDefinitions,
 } = require('./util');
 
 module.exports = createLogo;
@@ -700,13 +701,17 @@ module.exports = createLogo;
 function createLogo(options = {}) {
   const cameraDistance = options.cameraDistance || 400;
   const { height, width } = calculateSizingOptions(options);
+  const meshJson = options.meshJson || foxJson;
 
   const container = createNode('svg');
   setAttribute(container, 'width', `${width}px`);
   setAttribute(container, 'height', `${height}px`);
   document.body.appendChild(container);
 
-  const modelObj = loadModelFromJson(options.meshJson || foxJson);
+  setGradientDefinitions(container, meshJson.gradients);
+  setMaskDefinitions(container, meshJson.masks, height, width);
+
+  const modelObj = loadModelFromJson(meshJson);
   const renderFox = createModelRenderer(container, cameraDistance, modelObj);
   const renderScene = (lookCurrent, slowDrift) => {
     const rect = container.getBoundingClientRect();
@@ -718,6 +723,27 @@ function createLogo(options = {}) {
     renderScene,
     Object.assign({ cameraDistance }, options),
   );
+}
+
+function setMaskDefinitions(container, masks, height, width) {
+  for (const [maskId, maskDefinition] of Object.entries(masks)) {
+    const mask = createNode('mask');
+    setAttribute(mask, 'id', maskId);
+
+    const maskedRect = createNode('rect');
+
+    // Extend mask beyond container to ensure it completely covers the model.
+    // The model can extend beyond the container as well.
+    setAttribute(maskedRect, 'width', width * 1.5);
+    setAttribute(maskedRect, 'height', height * 1.5);
+    setAttribute(maskedRect, 'x', `-${Math.floor(width / 4)}`);
+    setAttribute(maskedRect, 'y', `-${Math.floor(height / 4)}`);
+
+    setAttribute(maskedRect, 'fill', maskDefinition.maskColor);
+    mask.appendChild(maskedRect);
+
+    container.appendChild(mask);
+  }
 }
 
 },{"./fox.json":3,"./util":14}],5:[function(require,module,exports){
@@ -1202,6 +1228,7 @@ module.exports = {
   createFaceUpdater,
   createNode,
   setAttribute,
+  setGradientDefinitions,
   svgElementToSvgImageContent,
   Polygon,
 };
@@ -1375,7 +1402,7 @@ function createModelRenderer(container, cameraDistance, modelObj) {
   return (rect, lookPos, slowDrift) => {
     const matrix = computeMatrix(rect, lookPos, slowDrift);
     updatePositions(matrix);
-    updateFaces(rect, container, polygons, transformed);
+    updateFaces(rect);
   };
 }
 
@@ -1394,10 +1421,23 @@ function positionsFromModel(positions, modelJson) {
 function createPolygonsFromModelJson(modelJson, createSvgPolygon) {
   const polygons = [];
   const polygonsByChunk = modelJson.chunks.map((chunk) => {
-    const { faces } = chunk;
+    const { faces, mask: maskId } = chunk;
     return faces.map((face) => {
-      const svgPolygon = createSvgPolygon(chunk);
-      const polygon = new Polygon(svgPolygon, face);
+      const svgPolygon = createSvgPolygon(chunk, {
+        gradients: modelJson.gradients,
+      });
+      let maskPolygon;
+      if (maskId) {
+        if (modelJson.masks[maskId] === undefined) {
+          throw new Error(`Unrecognized mask ID: '${maskId}'`);
+        }
+
+        maskPolygon = createSvgPolygon(chunk, {
+          gradients: modelJson.gradients,
+          mask: modelJson.masks[maskId],
+        });
+      }
+      const polygon = new Polygon(svgPolygon, face, maskPolygon);
       polygons.push(polygon);
       return polygon;
     });
@@ -1405,11 +1445,27 @@ function createPolygonsFromModelJson(modelJson, createSvgPolygon) {
   return { polygons, polygonsByChunk };
 }
 
-function createStandardModelPolygon(chunk) {
-  const color = `rgb(${chunk.color})`;
+function createStandardModelPolygon(chunk, { gradients = {}, mask }) {
   const svgPolygon = createNode('polygon');
-  setAttribute(svgPolygon, 'fill', color);
-  setAttribute(svgPolygon, 'stroke', color);
+
+  if (mask) {
+    setAttribute(svgPolygon, 'mask', `url('#${chunk.mask}')`);
+    setAttribute(svgPolygon, 'fill', mask.modelColor);
+    setAttribute(svgPolygon, 'stroke', mask.modelColor);
+  } else if (chunk.gradient) {
+    const gradientId = chunk.gradient;
+    if (!gradients[gradientId]) {
+      throw new Error(`Gradient ID not found: '${gradientId}'`);
+    }
+
+    setAttribute(svgPolygon, 'fill', `url('#${gradientId}')`);
+    setAttribute(svgPolygon, 'stroke', `url('#${gradientId}')`);
+  } else {
+    const fill = `rgb(${chunk.color})`;
+    setAttribute(svgPolygon, 'fill', fill);
+    setAttribute(svgPolygon, 'stroke', fill);
+  }
+
   setAttribute(svgPolygon, 'points', '0,0, 10,0, 0,10');
   return svgPolygon;
 }
@@ -1533,7 +1589,6 @@ function createFaceUpdater(container, polygons, transformed) {
       const points = [];
       let zmax = -Infinity;
       let zmin = Infinity;
-      const element = poly.svg;
       for (let j = 0; j < 3; ++j) {
         const idx = indices[j];
         points.push(
@@ -1545,20 +1600,26 @@ function createFaceUpdater(container, polygons, transformed) {
         zmax = Math.max(zmax, z);
         zmin = Math.min(zmin, z);
       }
+
       poly.zIndex = zmax + 0.25 * zmin;
       const joinedPoints = points.join(' ');
 
       if (joinedPoints.indexOf('NaN') === -1) {
-        setAttribute(element, 'points', joinedPoints);
+        setAttribute(poly.svg, 'points', joinedPoints);
+        if (poly.maskSvg) {
+          setAttribute(poly.maskSvg, 'points', joinedPoints);
+        }
       }
-
       toDraw.push(poly);
     }
     toDraw.sort(compareZ);
-    container.innerHTML = '';
-    for (i = 0; i < toDraw.length; ++i) {
-      container.appendChild(toDraw[i].svg);
-    }
+
+    const newPolygons = toDraw
+      .map((poly) => [poly.svg, ...(poly.maskSvg ? [poly.maskSvg] : [])])
+      .flat();
+    const defs = container.getElementsByTagName('defs');
+    const maskChildren = container.getElementsByTagName('mask');
+    container.replaceChildren(...defs, ...maskChildren, ...newPolygons);
   };
 }
 
@@ -1596,10 +1657,173 @@ function svgElementToSvgImageContent(svgElement) {
   return content;
 }
 
-function Polygon(svg, indices) {
+function Polygon(svg, indices, maskSvg) {
   this.svg = svg;
   this.indices = indices;
   this.zIndex = 0;
+  if (maskSvg) {
+    this.maskSvg = maskSvg;
+  }
+}
+
+function setGradientDefinitions(container, gradients) {
+  if (!gradients || Object.keys(gradients).length === 0) {
+    return;
+  }
+
+  const defsContainer = createNode('defs');
+
+  for (const [gradientId, gradientDefinition] of Object.entries(gradients)) {
+    let gradient;
+    if (gradientDefinition.type === 'linear') {
+      gradient = createNode('linearGradient');
+
+      if (gradientDefinition.href !== undefined) {
+        if (gradients[gradientDefinition.href] === undefined) {
+          throw new Error(
+            `Gradient 'href' set to unrecognized gradient ID: '${gradientDefinition.href}'`,
+          );
+        } else if (gradients[gradientDefinition.href].type !== 'linear') {
+          throw new Error(
+            `Linear gradiants can only extend other linear gradiants. Attribute 'href' has been set to gradient ID '${gradientDefinition.href}', which not a linear gradiant.`,
+          );
+        }
+        setAttribute(gradient, 'href', `url('#${gradientDefinition.href}')`);
+      }
+      const coordinateAttributes = ['x1', 'x2', 'y1', 'y2'];
+      if (
+        coordinateAttributes.some(
+          (attributeName) => gradientDefinition[attributeName] !== undefined,
+        )
+      ) {
+        const missingAttributes = coordinateAttributes.filter(
+          (attributeName) => gradientDefinition[attributeName] === undefined,
+        );
+        if (missingAttributes.length > 0) {
+          throw new Error(
+            `Missing coordinate attributes: '${missingAttributes.join(', ')}'`,
+          );
+        }
+
+        for (const attribute of coordinateAttributes) {
+          if (typeof gradientDefinition[attribute] !== 'string') {
+            throw new Error(
+              `Type of '${attribute}' option expected to be 'string'. Instead received type '${typeof gradientDefinition[
+                attribute
+              ]}'`,
+            );
+          }
+          setAttribute(gradient, attribute, gradientDefinition[attribute]);
+        }
+      }
+    } else if (gradientDefinition.type === 'radial') {
+      gradient = createNode('radialGradient');
+
+      if (gradientDefinition.href !== undefined) {
+        if (gradients[gradientDefinition.href] === undefined) {
+          throw new Error(
+            `Gradient 'href' set to unrecognized gradient ID: '${gradientDefinition.href}'`,
+          );
+        } else if (gradients[gradientDefinition.href].type !== 'radial') {
+          throw new Error(
+            `Radial gradiants can only extend other radial gradiants. Attribute 'href' has been set to gradient ID '${gradientDefinition.href}', which not a radial gradiant.`,
+          );
+        }
+        setAttribute(gradient, 'href', `url('#${gradientDefinition.href}')`);
+      }
+      const coordinateAttributes = ['cx', 'cy', 'fr', 'fx', 'fy', 'r'];
+      const presentCoordinateAttributes = coordinateAttributes.filter(
+        (attributeName) => gradientDefinition[attributeName] !== undefined,
+      );
+      if (presentCoordinateAttributes.length > 0) {
+        for (const attribute of presentCoordinateAttributes) {
+          if (typeof gradientDefinition[attribute] !== 'string') {
+            throw new Error(
+              `Type of '${attribute}' option expected to be 'string'. Instead received type '${typeof gradientDefinition[
+                attribute
+              ]}'`,
+            );
+          }
+          setAttribute(gradient, attribute, gradientDefinition[attribute]);
+        }
+      }
+    } else {
+      throw new Error(`Unsupported gradent type: '${gradientDefinition.type}'`);
+    }
+
+    // Set common attributes
+    setAttribute(gradient, 'id', gradientId);
+    if (gradientDefinition.gradientUnits !== undefined) {
+      if (
+        !['userSpaceOnUse', 'objectBoundingBox'].includes(
+          gradientDefinition.gradientUnits,
+        )
+      ) {
+        throw new Error(
+          `Unrecognized value for 'gradientUnits' attribute: '${gradientDefinition.gradientUnits}'`,
+        );
+      }
+      setAttribute(gradient, 'gradientUnits', gradientDefinition.gradientUnits);
+    }
+
+    if (gradientDefinition.gradientTransform !== undefined) {
+      if (typeof gradientDefinition.gradientTransform !== 'string') {
+        throw new Error(
+          `Type of 'gradientTransform' option expected to be 'string'. Instead received type '${typeof gradientDefinition.gradientTransform}'`,
+        );
+      }
+
+      setAttribute(
+        gradient,
+        'gradientTransform',
+        gradientDefinition.gradientTransform,
+      );
+    }
+
+    if (gradientDefinition.spreadMethod !== undefined) {
+      if (
+        !['pad', 'reflect', 'repeat'].includes(gradientDefinition.spreadMethod)
+      ) {
+        throw new Error(
+          `Unrecognized value for 'spreadMethod' attribute: '${gradientDefinition.spreadMethod}'`,
+        );
+      }
+      setAttribute(gradient, 'spreadMethod', gradientDefinition.spreadMethod);
+    }
+
+    if (gradientDefinition.stops !== undefined) {
+      if (!Array.isArray(gradientDefinition.stops)) {
+        throw new Error(`The 'stop' attribute must be an array`);
+      }
+
+      for (const stopDefinition of gradientDefinition.stops) {
+        if (typeof stopDefinition !== 'object') {
+          throw new Error(
+            `Each entry in the 'stop' attribute must be an object. Instead received type '${typeof stopDefinition}'`,
+          );
+        }
+        const stop = createNode('stop');
+
+        if (stopDefinition.offset !== undefined) {
+          setAttribute(stop, 'offset', stopDefinition.offset);
+        }
+
+        if (stopDefinition['stop-color'] !== undefined) {
+          setAttribute(stop, 'stop-color', stopDefinition['stop-color']);
+        }
+
+        if (stopDefinition['stop-opacity'] !== undefined) {
+          setAttribute(stop, 'stop-opacity', stopDefinition['stop-opacity']);
+        }
+
+        gradient.appendChild(stop);
+      }
+    }
+
+    defsContainer.appendChild(gradient);
+  }
+
+  container.appendChild(defsContainer);
 }
 
 },{"gl-mat4/invert":7,"gl-mat4/lookAt":8,"gl-mat4/multiply":9,"gl-mat4/perspective":10,"gl-mat4/rotate":11,"gl-vec3/transformMat4":12}]},{},[2]);

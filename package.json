@@ -18,7 +18,7 @@
     "util.js"
   ],
   "scripts": {
-    "build": "yarn bundle normal && yarn bundle gradient && yarn bundle recolor && yarn bundle distort && yarn bundle beta",
+    "build": "yarn bundle normal && yarn bundle gradient && yarn bundle recolor && yarn bundle distort && yarn bundle beta && yarn bundle flask",
     "bundle": "./example/build.sh",
     "convert": "node convert.js",
     "lint": "yarn lint:eslint && yarn lint:misc --check",
